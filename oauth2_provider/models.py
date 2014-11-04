@@ -17,6 +17,7 @@ from .settings import oauth2_settings
 from .compat import AUTH_USER_MODEL
 from .generators import generate_client_secret, generate_client_id
 from .validators import validate_uris
+from .fields import BigUUIDField, BigForeignKey, BigOneToOneField
 
 
 @python_2_unicode_compatible
@@ -58,9 +59,11 @@ class AbstractApplication(models.Model):
         (GRANT_CLIENT_CREDENTIALS, _('Client credentials')),
     )
 
+    id = BigUUIDField(primary_key=True)
     client_id = models.CharField(max_length=100, unique=True,
                                  default=generate_client_id, db_index=True)
-    user = models.ForeignKey(AUTH_USER_MODEL, related_name="%(app_label)s_%(class)s")
+    user = BigForeignKey(AUTH_USER_MODEL,
+                         related_name="%(app_label)s_%(class)s")
     help_text = _("Allowed URIs list, space separated")
     redirect_uris = models.TextField(help_text=help_text,
                                      validators=[validate_uris], blank=True)
@@ -68,7 +71,8 @@ class AbstractApplication(models.Model):
     authorization_grant_type = models.CharField(max_length=32,
                                                 choices=GRANT_TYPES)
     client_secret = models.CharField(max_length=255, blank=True,
-                                     default=generate_client_secret, db_index=True)
+                                     default=generate_client_secret,
+                                     db_index=True)
     name = models.CharField(max_length=255, blank=True)
 
     class Meta:
@@ -134,9 +138,11 @@ class Grant(models.Model):
     * :attr:`redirect_uri` Self explained
     * :attr:`scope` Required scopes, optional
     """
-    user = models.ForeignKey(AUTH_USER_MODEL)
-    code = models.CharField(max_length=255, db_index=True)  # code comes from oauthlib
-    application = models.ForeignKey(oauth2_settings.APPLICATION_MODEL)
+    id = BigUUIDField(primary_key=True)
+    user = BigForeignKey(AUTH_USER_MODEL)
+    # code comes from oauthlib
+    code = models.CharField(max_length=255, db_index=True)
+    application = BigForeignKey(oauth2_settings.APPLICATION_MODEL)
     expires = models.DateTimeField()
     redirect_uri = models.CharField(max_length=255)
     scope = models.TextField(blank=True)
@@ -169,9 +175,10 @@ class AccessToken(models.Model):
                       :data:`settings.ACCESS_TOKEN_EXPIRE_SECONDS`
     * :attr:`scope` Allowed scopes
     """
-    user = models.ForeignKey(AUTH_USER_MODEL)
+    id = BigUUIDField(primary_key=True)
+    user = BigForeignKey(AUTH_USER_MODEL)
     token = models.CharField(max_length=255, db_index=True)
-    application = models.ForeignKey(oauth2_settings.APPLICATION_MODEL)
+    application = BigForeignKey(oauth2_settings.APPLICATION_MODEL)
     expires = models.DateTimeField()
     scope = models.TextField(blank=True)
 
@@ -221,11 +228,12 @@ class RefreshToken(models.Model):
     * :attr:`access_token` AccessToken instance this refresh token is
                            bounded to
     """
-    user = models.ForeignKey(AUTH_USER_MODEL)
+    id = BigUUIDField(primary_key=True)
+    user = BigForeignKey(AUTH_USER_MODEL)
     token = models.CharField(max_length=255, db_index=True)
-    application = models.ForeignKey(oauth2_settings.APPLICATION_MODEL)
-    access_token = models.OneToOneField(AccessToken,
-                                        related_name='refresh_token')
+    application = BigForeignKey(oauth2_settings.APPLICATION_MODEL)
+    access_token = BigOneToOneField(AccessToken,
+                                    related_name='refresh_token')
 
     def __str__(self):
         return self.token
